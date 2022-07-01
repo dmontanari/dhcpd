@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "endian.h": "c",
+        "socket.h": "c"
+    }
+}
