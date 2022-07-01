@@ -53,12 +53,8 @@ struct dhcp_packet {
         char         bootp[BOOTP_SIZE];
     };
 
-    union {
-
-        u_int8_t        options[DHCP_OPTIONS_BUFFER_SIZE];
-        u_int32_t       magic_cookie;
-
-    };
+    u_int32_t       magic_cookie;
+    u_int8_t        options[DHCP_OPTIONS_BUFFER_SIZE];
 
 };
 
