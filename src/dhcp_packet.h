@@ -16,14 +16,14 @@
 
 #define DHCP_OPTIONS_BUFFER_SIZE      1024
 
-//struct dhcp_option_data {
+struct dhcp_option_data {
 
-//    u_int8_t                option;
-//    u_int8_t                len;
-//    void                    *data;
-//    struct dhcp_option_data *next;
+    u_int8_t                option;
+    u_int8_t                len;
+    void                    *data;
+    struct dhcp_option_data *next;
 
-//};
+};
 
 
 // RFC 2131

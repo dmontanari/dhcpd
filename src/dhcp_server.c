@@ -1,7 +1,9 @@
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <unistd.h>
 #include <errno.h>
 
@@ -174,13 +176,14 @@ void dump_dhcp_packet(struct dhcp_packet *packet) {
 
 }
 
-void parse_options(void *options) {
+struct dhcp_option_data *parse_options(void *options) {
 
     void        *aux    =   NULL;
     u_int8_t    *cmd    =   NULL;
     u_int8_t    *len    =   0;
 
-    char        *hostname = NULL;
+    struct dhcp_option_data *opts = NULL,
+                            *opts_next = NULL;
 
     aux = options;
 
@@ -188,25 +191,66 @@ void parse_options(void *options) {
         cmd = (u_int8_t *)aux;
         len = (u_int8_t *)(aux+1);
 
+        if ( !opts )
+        {
+            opts = (struct dhcp_option_data *)malloc(sizeof(struct dhcp_option_data));
+            opts_next = opts;
+        }
+        else
+        {
+            //
+            opts_next->next = (struct dhcp_option_data *)malloc(sizeof(struct dhcp_option_data));
+            opts_next = opts_next->next;
+        }
+        opts_next->option = *cmd;
+        opts_next->len = *len;
+        opts_next->data = malloc(opts->len+1);
+        memset(opts_next->data, 0, opts_next->len+1);
+        memcpy(opts_next->data, aux+2, opts_next->len);
+
         switch (*cmd) {
 
             case OP_HOSTNAME:
-                hostname = (char *)(aux+2);
-                printf("Option 12 - Hostname %s (len %u)\n", hostname, *len);
+                printf("Option 12 - Hostname %s (len %u)\n", (char *)opts_next->data, opts_next->len);
                 break;
 
             case OP_MESSAGE_TYPE:
-                printf("Option 53 - MESSAGE TYPE %u - len %u\n", *((char *)(aux+2)), *len);
+                printf("Option 53 - MESSAGE TYPE %u - len %u\n", *(char *)opts_next->data, opts_next->len);
                 break;
 
            case OP_PARAMETER_LIST:
-                printf("Option 55 - Parameters List len %u\n", *len);
+                printf("Option 55 - Parameters List len %u\n", opts_next->len);
+                for (int i=0; i<opts_next->len; i++)
+                {
+                    u_int8_t *parm = (unsigned char *)(opts_next->data + i);
+
+                    printf("Request parameter %u\n", *parm);
+                }
+
                 break;
         }
 
-        aux +=  (2 + *len);
+        aux +=  (2 + opts_next->len);
 
     } while (*cmd != OP_END);
+
+    return opts;
+}
+
+void release_options(struct dhcp_option_data *opts) {
+
+    struct dhcp_option_data *aux = NULL;
+
+    do {
+        if (opts)
+        {
+            aux = opts->next;
+            free(opts->data);
+            free(opts);
+            opts = aux;
+        }
+
+    } while (opts);
 
 }
 
@@ -222,7 +266,8 @@ void dhcpd_serve() {
 
 //            receive_options( &options );
             dump_dhcp_packet(&packet);
-            parse_options( (void *)packet.options);
+            struct dhcp_option_data *p = parse_options( (void *)packet.options);
+            release_options(p);
 
         }
 
